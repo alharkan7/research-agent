@@ -1,0 +1,4 @@
+ID,Authors,Year,Title,Journal,Volume,Issue,Pages,DOI,URL,Abstract,Keywords,CitationCount,Notes,Included,Relevance_Score
+1,"Author A, Author B",2023,Example Paper Title,Journal of Example,12,3,100-115,10.1234/example,https://doi.org/10.1234/example,Abstract text here. Summary of what the paper is about.,keyword1; keyword2; keyword3,45,Initial note about the paper,YES,High
+2,"Author C",2022,Another Study on the Topic,International Journal of Research,8,1,22-38,10.5678/another,https://doi.org/10.5678/another,Abstract of second paper.,keyword2; keyword4,32,Methodology similar to current study,YES,Medium
+3,"Author D, Author E, Author F",2021,Third Paper Title,Journal Name,5,2,67-89,10.9101/third,https://doi.org/10.9101/third,Third paper abstract.,keyword1; keyword5,18,Background reading only,MAYBE,Low
