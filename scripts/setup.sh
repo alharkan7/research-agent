@@ -55,31 +55,16 @@ fi
 echo "[2/5] Installing Python packages..."
 pip install -q --upgrade pip
 
-pip install -q \
+pip install -q --prefer-binary \
     scipy \
     statsmodels \
-    scikit-learn \
-    pingouin \
-    factor_analyzer \
-    scholarly \
-    arxiv \
-    habanero \
-    pyalex \
-    semanticscholar \
-    feedparser \
-    httpx \
     matplotlib \
     seaborn \
-    pypdf2 \
-    pdfplumber \
     python-docx \
     python-pptx \
     openpyxl \
     tabulate \
-    jinja2 \
     bibtexparser \
-    markdown \
-    mistune \
     tqdm \
     rich \
     loguru \
@@ -144,7 +129,7 @@ echo "  ✅ Workspace directories created"
 echo ""
 echo "Verifying Python imports..."
 python3 -c "
-import scipy, statsmodels, pingouin, bibtexparser
+import scipy, statsmodels, bibtexparser
 import matplotlib, seaborn, openpyxl
 from docx import Document
 from pptx import Presentation
