@@ -9,6 +9,12 @@ echo "============================================"
 echo "  Research Agent Environment Setup"
 echo "============================================"
 
+# Load API keys from injected .env file
+if [ -f /workspace/.env ]; then
+    export $(grep -v '^#' /workspace/.env | xargs)
+    echo "  🔑 Loaded API keys from /workspace/.env"
+fi
+
 # ---------------------------------------------------------
 # 1. System packages
 # ---------------------------------------------------------
