@@ -1,9 +1,15 @@
 #!/bin/bash
 # setup.sh — Research Agent Environment Setup
 # Run this once after the environment is provisioned.
-# It installs all required system tools and Python/Node packages.
+# It installs a lean core stack by default.
+# Heavy extras are opt-in via env flags.
 
 set -e  # Exit on any error
+
+# Optional installation toggles (default = lean setup)
+INSTALL_HEAVY_TOOLS=${INSTALL_HEAVY_TOOLS:-0}   # TeX/Image stack
+INSTALL_NODE_TOOLS=${INSTALL_NODE_TOOLS:-0}     # Mermaid/reveal-md
+INSTALL_NLP_EXTRAS=${INSTALL_NLP_EXTRAS:-0}     # nltk + corpora
 
 echo "============================================"
 echo "  Research Agent Environment Setup"
@@ -16,26 +22,35 @@ if [ -f /workspace/.env ]; then
 fi
 
 # ---------------------------------------------------------
-# 1. System packages
+# 1. System packages (lean baseline)
 # ---------------------------------------------------------
 echo "[1/5] Installing system packages..."
 apt-get update -qq && apt-get install -y -qq \
     pandoc \
-    texlive-xetex \
-    texlive-fonts-recommended \
-    texlive-latex-extra \
-    librsvg2-bin \
-    imagemagick \
     poppler-utils \
-    wkhtmltopdf \
     fonts-liberation \
     fonts-dejavu \
     2>/dev/null
 
 echo "  ✅ System packages installed"
 
+if [ "$INSTALL_HEAVY_TOOLS" = "1" ]; then
+    echo "  ➕ Installing heavy system extras (TeX/image stack)..."
+    apt-get install -y -qq \
+        texlive-xetex \
+        texlive-fonts-recommended \
+        texlive-latex-extra \
+        librsvg2-bin \
+        imagemagick \
+        wkhtmltopdf \
+        2>/dev/null
+    echo "  ✅ Heavy system extras installed"
+else
+    echo "  ⏭️  Skipping heavy system extras (set INSTALL_HEAVY_TOOLS=1 to enable)"
+fi
+
 # ---------------------------------------------------------
-# 2. Python packages
+# 2. Python packages (lean core)
 # ---------------------------------------------------------
 echo "[2/5] Installing Python packages..."
 pip install -q --upgrade pip
@@ -55,10 +70,6 @@ pip install -q \
     httpx \
     matplotlib \
     seaborn \
-    plotly \
-    kaleido \
-    altair \
-    wordcloud \
     pypdf2 \
     pdfplumber \
     python-docx \
@@ -66,12 +77,9 @@ pip install -q \
     openpyxl \
     tabulate \
     jinja2 \
-    nltk \
-    rake-nltk \
     bibtexparser \
     markdown \
     mistune \
-    weasyprint \
     tqdm \
     rich \
     loguru \
@@ -80,10 +88,12 @@ pip install -q \
 echo "  ✅ Python packages installed"
 
 # ---------------------------------------------------------
-# 3. NLTK data
+# 3. Optional NLP extras (NLTK)
 # ---------------------------------------------------------
-echo "[3/5] Downloading NLTK data..."
-python3 -c "
+if [ "$INSTALL_NLP_EXTRAS" = "1" ]; then
+    echo "[3/5] Installing NLP extras and downloading NLTK data..."
+    pip install -q nltk rake-nltk wordcloud weasyprint
+    python3 -c "
 import nltk
 nltk.download('punkt', quiet=True)
 nltk.download('stopwords', quiet=True)
@@ -91,18 +101,25 @@ nltk.download('averaged_perceptron_tagger', quiet=True)
 nltk.download('wordnet', quiet=True)
 print('  NLTK data ready')
 "
+else
+    echo "[3/5] Skipping NLP extras (set INSTALL_NLP_EXTRAS=1 to enable)"
+fi
 
 # ---------------------------------------------------------
-# 4. Node.js packages (global)
+# 4. Optional Node.js packages
 # ---------------------------------------------------------
-echo "[4/5] Installing Node.js packages..."
-npm install -g -q \
-    @mermaid-js/mermaid-cli \
-    reveal-md \
-    2>/dev/null || echo "  ⚠️  Some npm packages may have failed (non-critical)"
+if [ "$INSTALL_NODE_TOOLS" = "1" ]; then
+    echo "[4/5] Installing Node.js packages..."
+    npm install -g -q \
+        @mermaid-js/mermaid-cli \
+        reveal-md \
+        2>/dev/null || echo "  ⚠️  Some npm packages may have failed (non-critical)"
 
-# Verify mmdc
-mmdc --version 2>/dev/null && echo "  ✅ Mermaid CLI ready" || echo "  ⚠️  mmdc not available"
+    # Verify mmdc
+    mmdc --version 2>/dev/null && echo "  ✅ Mermaid CLI ready" || echo "  ⚠️  mmdc not available"
+else
+    echo "[4/5] Skipping Node.js global tools (set INSTALL_NODE_TOOLS=1 to enable)"
+fi
 
 # ---------------------------------------------------------
 # 5. Create workspace directories
@@ -151,5 +168,10 @@ curl -s -o "$CSL_DIR/mla9.csl" "$CSL_BASE/modern-language-association.csl" && ec
 echo ""
 echo "============================================"
 echo "  ✅ Setup complete!"
+echo "  Lean mode enabled by default."
+echo "  Optional extras:"
+echo "    INSTALL_HEAVY_TOOLS=1 bash /workspace/scripts/setup.sh"
+echo "    INSTALL_NODE_TOOLS=1  bash /workspace/scripts/setup.sh"
+echo "    INSTALL_NLP_EXTRAS=1  bash /workspace/scripts/setup.sh"
 echo "  Environment is ready for research tasks."
 echo "============================================"
