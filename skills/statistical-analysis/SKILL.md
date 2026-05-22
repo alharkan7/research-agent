@@ -1,9 +1,9 @@
 ---
 name: statistical-analysis
 description: >
-  Perform descriptive statistics, common inferential tests (t-test, ANOVA,
-  correlation, regression), and generate APA-formatted results tables and
-  Chapter 4 sections from user data files.
+  Perform statistical analysis on user data. Returns results inline by default.
+  Generates Excel tables, diagnostic plots, and Chapter 4 draft only when
+  explicitly requested.
 triggers:
   - analyze data
   - run stats
@@ -20,13 +20,17 @@ triggers:
 
 # Statistical Analysis Skill
 
-## Overview
+## What to do based on what the user asked
 
-This skill loads user data, runs appropriate statistical tests, and produces:
-- APA 7th-edition formatted results narrative
-- Summary statistics tables (saved as `.xlsx`)
-- Chapter 4 (Results) section draft
-- Diagnostic plots (normality, residuals, etc.)
+| User request | Steps to run |
+|---|---|
+| "Analyze my data / run stats on X" | Steps 1–4. Show results inline in chat. |
+| "Save the results as Excel" | Steps 1–4, then Step 5. |
+| "Write a Chapter 4 / Results section" | Steps 1–5, then Step 6. |
+| "Just run a t-test / correlation / [specific test]" | Step 1 (load), then only that test from Step 4. Show result inline. |
+| "Descriptive stats for my data" | Steps 1–2 only. Show inline. |
+
+**Default behavior: show results inline in chat. Only create files when explicitly asked.**
 
 ---
 
@@ -34,7 +38,7 @@ This skill loads user data, runs appropriate statistical tests, and produces:
 
 | Test | When to Use | Python Function |
 |---|---|---|
-| Descriptive statistics | Always — run first | `pingouin.describe()` or `pandas.DataFrame.describe()` |
+| Descriptive statistics | Always — run first | `pandas.DataFrame.describe()` |
 | Shapiro-Wilk normality | n < 50 | `scipy.stats.shapiro()` |
 | Kolmogorov-Smirnov | n ≥ 50 | `scipy.stats.kstest()` |
 | Independent t-test | 2 groups, continuous DV | `pingouin.ttest()` |
@@ -52,51 +56,38 @@ This skill loads user data, runs appropriate statistical tests, and produces:
 
 ---
 
-## Step-by-Step Instructions
-
-### Step 1 — Load and Inspect Data
+## Step 1 — Load and Inspect Data
 
 ```python
 import pandas as pd
 import numpy as np
 
-# Load the data file (CSV, XLSX, or JSON)
 df = pd.read_csv("/workspace/data/<filename>")  # or read_excel()
-
-# Basic inspection
 print(df.shape)
 print(df.dtypes)
 print(df.head())
 print(df.isnull().sum())
 ```
 
-Report:
-- Number of rows (n) and columns
-- Data types of each variable
-- Missing values per column
-- Ask user how to handle missing data (listwise deletion, mean imputation, etc.)
+Report: n, columns, data types, missing values. Ask how to handle missing data if any.
 
-### Step 2 — Descriptive Statistics
+---
+
+## Step 2 — Descriptive Statistics
 
 ```python
-import pingouin as pg
-
-# For all numeric columns
 desc = df.describe().T
 desc['median'] = df.median()
 desc['skewness'] = df.skew()
 desc['kurtosis'] = df.kurtosis()
-
-print(desc[['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max', 'skewness', 'kurtosis']])
-
-# Save to Excel
-desc.to_excel("/workspace/output/exports/descriptive_statistics.xlsx")
+print(desc[['count', 'mean', 'std', 'min', '50%', 'max', 'skewness', 'kurtosis']])
 ```
 
-**APA reporting format:**
-> "Descriptive statistics are presented in Table 1. The mean score for [Variable] was *M* = [value], *SD* = [value] (n = [n])."
+**APA format:** "The mean score for [Variable] was *M* = [value], *SD* = [value] (n = [n])."
 
-### Step 3 — Normality Testing
+---
+
+## Step 3 — Normality Testing (run before inferential tests)
 
 ```python
 from scipy import stats
@@ -108,66 +99,57 @@ for col in numeric_columns:
     else:
         stat, p = stats.kstest(df[col].dropna(), 'norm')
         test_name = "Kolmogorov-Smirnov"
-    
     normal = "normal" if p > 0.05 else "non-normal"
     print(f"{col}: {test_name} W={stat:.3f}, p={p:.3f} → {normal}")
 ```
 
-Decide: if p > .05 → use parametric tests; if p ≤ .05 → use non-parametric equivalents.
+If p > .05 → use parametric; if p ≤ .05 → use non-parametric equivalents.
 
-### Step 4 — Inferential Tests
+---
 
-#### Correlation
+## Step 4 — Inferential Tests
+
+### Correlation
 ```python
+import pingouin as pg
 corr = pg.corr(df['var1'], df['var2'], method='pearson')
 r = corr['r'].values[0]
 p = corr['p-val'].values[0]
 ci95 = corr['CI95%'].values[0]
-
-# APA format:
 print(f"r({n-2}) = {r:.2f}, p = {p:.3f}, 95% CI [{ci95[0]:.2f}, {ci95[1]:.2f}]")
 ```
 
-#### Independent t-test
+### Independent t-test
 ```python
 ttest = pg.ttest(group1, group2)
-t = ttest['T'].values[0]
-df_val = ttest['dof'].values[0]
-p = ttest['p-val'].values[0]
-d = ttest['cohen-d'].values[0]
-
-# APA format:
+t = ttest['T'].values[0]; df_val = ttest['dof'].values[0]
+p = ttest['p-val'].values[0]; d = ttest['cohen-d'].values[0]
 print(f"t({df_val:.0f}) = {t:.2f}, p = {p:.3f}, d = {d:.2f}")
 ```
 
-#### Linear Regression
+### Linear Regression
 ```python
 import statsmodels.formula.api as smf
-
 model = smf.ols('dependent_var ~ predictor1 + predictor2', data=df).fit()
-print(model.summary())
-
-# Extract key values:
-r2 = model.rsquared
-f_stat = model.fvalue
-f_p = model.f_pvalue
-print(f"R² = {r2:.3f}, F({model.df_model:.0f}, {model.df_resid:.0f}) = {f_stat:.2f}, p = {f_p:.3f}")
+print(f"R² = {model.rsquared:.3f}, F({model.df_model:.0f}, {model.df_resid:.0f}) = {model.fvalue:.2f}, p = {model.f_pvalue:.3f}")
 ```
 
-### Step 5 — Generate Results Tables (Excel)
+---
+
+## Step 5 — Save Results as Excel (only if requested)
 
 ```python
-# Save all results to Excel with multiple sheets
 with pd.ExcelWriter("/workspace/output/exports/statistical_results.xlsx") as writer:
     desc.to_excel(writer, sheet_name="Descriptive Stats")
     corr_matrix.to_excel(writer, sheet_name="Correlations")
-    # Add other result sheets...
+print("Saved: /workspace/output/exports/statistical_results.xlsx")
 ```
 
-### Step 6 — Generate Chapter 4 Draft
+---
+
+## Step 6 — Generate Chapter 4 Draft (only if requested)
 
 ```python
-# Use the Chapter 4 template
 import subprocess
 result = subprocess.run(
     ["python3", "/workspace/scripts/stats_report.py",
@@ -192,18 +174,5 @@ The output follows the `/workspace/templates/chapter4_stats_template.md` structu
 | Chi-square | χ²(df, *N* = n) = value, *p* = .xxx, φ = value |
 | Mean/SD | *M* = value, *SD* = value |
 
-**Notes:**
-- Report exact p-values (not p < .05); exception: p < .001
-- Use italics for statistical symbols in final Word doc
+- Report exact p-values; exception: p < .001
 - Always report effect sizes alongside significance
-
----
-
-## Output Files
-
-| File | Location |
-|---|---|
-| Descriptive statistics | `/workspace/output/exports/descriptive_statistics.xlsx` |
-| All statistical results | `/workspace/output/exports/statistical_results.xlsx` |
-| Chapter 4 draft | `/workspace/output/reports/chapter4_results.md` |
-| Diagnostic plots | `/workspace/output/charts/` |

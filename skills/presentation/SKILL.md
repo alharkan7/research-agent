@@ -29,6 +29,21 @@ Output: PPTX (primary) or HTML/Reveal.js (optional)
 
 ---
 
+## What to do based on what the user asked
+
+| User request | What to do |
+|---|---|
+| "Create slides for my research" | Ask: how many slides? what type? Then build. |
+| "Make a [N]-slide summary" | Build exactly N slides on the key points. |
+| "Conference presentation" | Use the 12–15 slide structure below. |
+| "Thesis defense slides" | Use the 25–35 slide structure. |
+| "Turn this into slides" | Extract key points from provided content, build slides. |
+| "Add a slide about X" | Add just that slide to an existing deck. |
+
+**Default: ask clarifying questions if the scope is ambiguous. Don't build a full deck if the user only asked for a few slides.**
+
+---
+
 ## Presentation Types
 
 | Type | Slides | Style |
